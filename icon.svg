@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="0" fill="#1f6f4a"/>
+  <!-- mushroom: cap + stem, in the app's accent colours -->
+  <path d="M96 276 C 96 166, 176 106, 256 106 C 336 106, 416 166, 416 276 Z" fill="#f4efe4"/>
+  <circle cx="196" cy="196" r="22" fill="#1f6f4a" opacity=".25"/>
+  <circle cx="300" cy="172" r="16" fill="#1f6f4a" opacity=".25"/>
+  <circle cx="330" cy="236" r="14" fill="#1f6f4a" opacity=".25"/>
+  <path d="M206 276 L 306 276 L 296 396 C 294 414, 218 414, 216 396 Z" fill="#e3dccb"/>
+</svg>

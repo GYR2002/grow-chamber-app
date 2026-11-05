@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grow Chamber</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Grow">
+<meta name="theme-color" content="#1f6f4a">
+<style>
+  :root {
+    --bg: #f1f2ef; --card: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #85847f; --line: #e1e2de;
+    --accent: #1f6f4a; --on-accent: #ffffff; --series: #2a78d6; --band: rgba(31, 111, 74, .10);
+    --good: #0ca30c; --warn: #fab219; --crit: #d03b3b; --demo: #6250d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111312; --card: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #8f8e86; --line: #2d2e2b;
+      --accent: #5fc493; --on-accent: #0b1f15; --series: #3987e5; --band: rgba(95, 196, 147, .12); --demo: #9085e9;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111312; --card: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #8f8e86; --line: #2d2e2b;
+    --accent: #5fc493; --on-accent: #0b1f15; --series: #3987e5; --band: rgba(95, 196, 147, .12); --demo: #9085e9;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-tap-highlight-color: transparent; }
+  .app { max-width: 440px; margin: 0 auto; min-height: 100vh; position: relative; }
+  header { position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 14px 16px 10px; display: flex; align-items: center; gap: 10px; }
+  header h1 { font-size: 20px; margin: 0; font-weight: 700; flex: 1; }
+  .pill { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--demo) 14%, transparent); color: var(--demo); white-space: nowrap; }
+  .iconbtn { border: 0; background: var(--card); color: var(--ink); width: 36px; height: 36px; border-radius: 50%; font-size: 17px; cursor: pointer; }
+  .sub { padding: 0 16px 8px; display: flex; gap: 8px; align-items: center; color: var(--ink2); font-size: 13px; }
+  .chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; color: var(--ink); }
+  main { padding: 4px 16px 96px; }
+  section[hidden] { display: none; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 18px 0 8px; font-weight: 650; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tile { background: var(--card); border-radius: 16px; padding: 12px 12px 8px; min-width: 0; }
+  .tile .lbl { font-size: 12.5px; color: var(--ink2); }
+  .tile .val { font-size: 28px; font-weight: 650; letter-spacing: -.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .tile .val small { font-size: 14px; font-weight: 500; color: var(--ink2); margin-left: 2px; }
+  .tile .tgt { font-size: 12px; color: var(--muted); }
+  .st { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink2); margin-top: 4px; }
+  .st i { font-style: normal; width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 800; color: #fff; }
+  .st.good i { background: var(--good); } .st.warn i { background: var(--warn); color: #3a2a00; } .st.crit i { background: var(--crit); }
+  .spark { display: block; width: 100%; height: 30px; margin-top: 6px; }
+  .card { background: var(--card); border-radius: 16px; padding: 4px 14px; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; }
+  .row .name { flex: 1; }
+  .row .meta { font-size: 12px; color: var(--muted); }
+  .state { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1.5px solid var(--line); color: var(--ink2); min-width: 48px; text-align: center; }
+  .state.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .note { font-size: 12.5px; color: var(--muted); margin: 8px 2px; }
+  .seg { display: flex; background: var(--card); border-radius: 12px; padding: 3px; gap: 3px; }
+  .seg button { flex: 1; border: 0; background: transparent; color: var(--ink2); font: inherit; font-size: 14px; font-weight: 600; padding: 8px; border-radius: 9px; cursor: pointer; }
+  .seg button.sel { background: var(--accent); color: var(--on-accent); }
+  .chart { background: var(--card); border-radius: 16px; padding: 12px 12px 6px; margin-bottom: 10px; position: relative; }
+  .chart .head { display: flex; align-items: baseline; gap: 8px; }
+  .chart .title { font-weight: 650; flex: 1; }
+  .chart .now { font-size: 13px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+  .linkbtn { border: 0; background: none; color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 0; }
+  .chart svg { display: block; width: 100%; height: auto; touch-action: none; }
+  .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--card); font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 7px; white-space: nowrap; transform: translate(-50%, -100%); display: none; font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
+  td, th { text-align: left; padding: 4px 2px; border-top: 1px solid var(--line); } th { color: var(--muted); font-weight: 600; }
+  .ctl { background: var(--card); border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; }
+  .ctl .top { display: flex; align-items: baseline; }
+  .ctl .top b { flex: 1; font-weight: 600; }
+  .ctl .top span { font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .ctl input[type=range] { width: 100%; accent-color: var(--accent); margin: 8px 0 2px; }
+  .ctl .lim { font-size: 12px; color: var(--muted); }
+  .btn { width: 100%; border: 0; border-radius: 14px; padding: 13px; font: inherit; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--on-accent); }
+  .btn.ghost { background: var(--card); color: var(--ink); border: 1.5px solid var(--line); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .ack { font-size: 13px; color: var(--ink2); text-align: center; min-height: 20px; margin-top: 8px; }
+  .alert { display: flex; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); align-items: flex-start; }
+  .alert:first-child { border-top: 0; }
+  .alert .st { margin-top: 1px; }
+  .alert .txt { flex: 1; font-size: 14px; } .alert .txt small { display: block; color: var(--muted); font-size: 12px; }
+  .st.info i { background: var(--muted); }
+  nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 440px; background: var(--card); border-top: 1px solid var(--line); display: flex; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); z-index: 4; }
+  nav button { flex: 1; border: 0; background: none; color: var(--muted); font: inherit; font-size: 11.5px; font-weight: 600; padding: 6px 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+  nav button .ic { font-size: 19px; line-height: 1; }
+  nav button.sel { color: var(--accent); }
+  nav .badge { position: absolute; top: 2px; left: calc(50% + 8px); background: var(--crit); color: #fff; font-size: 10px; border-radius: 999px; padding: 0 5px; }
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 10; display: none; align-items: flex-end; justify-content: center; }
+  .sheet.open { display: flex; }
+  .sheet .panel { background: var(--bg); width: 100%; max-width: 440px; border-radius: 20px 20px 0 0; padding: 18px 16px 28px; }
+  .grow { background: var(--card); border-radius: 16px; padding: 14px; }
+  .grow .gname { font-weight: 700; font-size: 17px; }
+  .grow .gmeta { font-size: 13px; color: var(--ink2); margin-top: 2px; }
+  .entry { display: flex; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .entry:first-child { border-top: 0; }
+  .entry .day { min-width: 46px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .entry .day b { display: block; font-size: 16px; color: var(--ink); }
+  .entry .body { flex: 1; min-width: 0; font-size: 14px; }
+  .entry img { display: block; width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; margin-top: 6px; }
+  .tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink2); }
+  .tag.harvest { color: var(--accent); } .tag.problem { color: var(--crit); }
+  .form textarea, .form input[type=number] { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; margin-top: 8px; }
+  .form textarea { min-height: 70px; resize: vertical; }
+  .preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 10px; margin-top: 8px; display: none; }
+  .growrow { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .growrow:first-child { border-top: 0; }
+  .growrow .gr { flex: 1; } .growrow .gr small { display: block; color: var(--muted); font-size: 12px; }
+  .growrow .yield { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .field { display: block; margin: 10px 0; font-size: 13px; color: var(--ink2); }
+  .login { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  .login[hidden], [hidden] { display: none !important; }
+  .login .panel { width: 100%; max-width: 380px; }
+  .login h1 { font-size: 26px; margin: 0 0 4px; }
+  .pill.live { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+  .pill.stale { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--ink); }
+  .field input { display: block; width: 100%; margin-top: 4px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; }
+</style>
+</head>
+<body>
+<div class="login" id="login" hidden><div class="panel">
+  <h1>Grow Chamber</h1>
+  <p class="note" style="margin:0 0 6px">Log in with your Supabase account to see your chamber.</p>
+  <label class="field">Email<input id="email" type="email" autocomplete="username"></label>
+  <label class="field">Password<input id="password" type="password" autocomplete="current-password"></label>
+  <button class="btn" id="loginBtn">Log in</button>
+  <div class="ack" id="loginMsg"></div>
+  <button class="btn ghost" id="demoBtn">Try the demo (simulated data)</button>
+</div></div>
+<div class="app">
+  <header>
+    <h1>Grow Chamber</h1>
+    <span class="pill" id="pill">Demo · simulated</span>
+    <button class="iconbtn" id="gear" aria-label="Settings">⚙︎</button>
+  </header>
+  <div class="sub"><span class="chip" id="phaseChip">Fruiting</span><span id="clock"></span></div>
+
+  <main>
+    <section id="tab-overview">
+      <div class="grid" id="tiles"></div>
+      <h2>Outputs</h2>
+      <div class="card" id="outputs"></div>
+      <p class="note demoOnly">The controller in the chamber switches these by itself. This app only watches, and nudges setpoints from the Control tab.</p>
+    </section>
+
+    <section id="tab-graphs" hidden>
+      <div class="seg" id="range"><button data-h="6" class="sel">6 h</button><button data-h="24">24 h</button></div>
+      <div id="charts" style="margin-top:10px"></div>
+      <button class="btn ghost" id="exportGraphs">Export these values as CSV</button>
+    </section>
+
+    <section id="tab-control" hidden>
+      <p class="note realOnly" hidden>Control comes with the next step: the MQTT link (HiveMQ), once relays and loads are wired. Until then the logger only measures.</p>
+      <div class="demoOnly">
+      <h2 style="margin-top:6px">Phase</h2>
+      <div class="seg" id="phaseSeg"><button data-p="incubation">Incubation</button><button data-p="fruiting">Fruiting</button></div>
+      <h2>Setpoints</h2>
+      <div id="sliders"></div>
+      <button class="btn" id="send">Send to chamber</button>
+      <div class="ack" id="ack"></div>
+      <h2>Quick actions</h2>
+      <div class="two"><button class="btn ghost" id="mistBurst">Mist 10 s</button><button class="btn ghost" id="purgeBtn">Fresh air 2 min</button></div>
+      <p class="note">The ESP32 checks every command against its own limits and refuses anything outside them. If the connection drops, the chamber keeps running on its last setpoints.</p>
+      </div>
+    </section>
+
+    <section id="tab-logbook" hidden>
+      <p class="note realOnly" hidden>The real logbook (start a grow, notes, harvests, photos saved to your database) is the next step. Try it meanwhile in the demo.</p>
+      <div class="demoOnly">
+      <div class="grow" id="growCard"></div>
+      <div class="two"><button class="btn" id="newEntry">+ Entry</button><button class="btn ghost" id="exportData">Export data</button></div>
+      <div class="grow form" id="entryForm" style="margin-top:10px" hidden>
+        <div class="seg" id="kindSeg"><button data-k="note" class="sel">Note</button><button data-k="photo">Photo</button><button data-k="harvest">Harvest</button><button data-k="problem">Problem</button></div>
+        <textarea id="entryText" placeholder="What do you see? e.g. first pins on the left side"></textarea>
+        <label class="linkbtn" id="photoLabel" style="display:inline-block;margin-top:8px">📷 Take or choose a photo<input type="file" id="photoIn" accept="image/*" capture="environment" hidden></label>
+        <img class="preview" id="preview" alt="">
+        <input type="number" id="grams" placeholder="Harvest weight in grams" min="0" step="1" hidden>
+        <div class="two"><button class="btn ghost" id="cancelEntry">Cancel</button><button class="btn" id="saveEntry">Save</button></div>
+      </div>
+      <h2>This grow</h2>
+      <div class="card" id="entries"></div>
+      <button class="linkbtn" id="exportLog" style="margin:8px 2px">Export logbook as CSV</button>
+      <h2>All grows</h2>
+      <div class="card" id="growList"></div>
+      <p class="note">Each grow keeps its measurements, notes, photos and harvests together, so grows can be compared later. In the real app they live in the database; in this demo, your entries stay only in this browser.</p>
+      </div>
+    </section>
+
+    <section id="tab-alerts" hidden>
+      <p class="note realOnly" hidden>Alerts come with the controller firmware. Until then the status at the top turns orange when the logger has sent nothing for a while.</p>
+      <div class="demoOnly">
+      <div class="card" id="alerts"></div>
+      <p class="note">Urgent alerts also go to Telegram, so your phone buzzes even when this app is closed.</p>
+      </div>
+    </section>
+  </main>
+
+  <nav id="nav">
+    <button data-tab="overview" class="sel"><span class="ic">◉</span>Overview</button>
+    <button data-tab="graphs"><span class="ic">∿</span>Graphs</button>
+    <button data-tab="logbook"><span class="ic">✎</span>Logbook</button>
+    <button data-tab="control"><span class="ic">☰</span>Control</button>
+    <button data-tab="alerts"><span class="ic">!</span>Alerts<span class="badge" id="badge" hidden></span></button>
+  </nav>
+</div>
+
+<div class="sheet" id="sheet"><div class="panel">
+  <h2 style="margin-top:0">Account</h2>
+  <div id="acct"></div>
+  <h2>Live link (next step)</h2>
+  <p class="note" style="margin-top:0">For live values and control the app will also connect to the MQTT broker.</p>
+  <label class="field">Broker address<input disabled placeholder="xxxx.s1.eu.hivemq.cloud"></label>
+  <label class="field">Username<input disabled placeholder="phone"></label>
+  <label class="field">Password<input disabled type="password" placeholder="kept only on this phone"></label>
+  <p class="note">Connecting to the real chamber comes in step 2, after the HiveMQ account exists.</p>
+  <h2>Look</h2>
+  <div class="seg" id="themeSeg"><button data-t="">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button></div>
+  <button class="btn ghost" id="closeSheet" style="margin-top:16px">Close</button>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.min.js"></script>
+<script>
+// Demo of the phone app: a small chamber simulation stands in for the ESP32 until the MQTT link exists (step 2).
+// All numbers are illustrative, not the spec's setpoints.
+
+const SPEED = 20;                 // simulated seconds per real second
+const SAMPLE_S = 300;             // one history point every 5 min, like the SD log
+const ROOM_C = 19.2;
+const PHASES = {
+  incubation: { t: 23, rh: 87.5, co2: 5000, light: 0 },
+  fruiting: { t: 20, rh: 92.5, co2: 1000, light: 12 },
+};
+// What the ESP32 would accept: the app can't send anything outside these.
+const LIMITS = {
+  t: { min: 12, max: 28, step: 0.5, unit: "℃", name: "Air temperature" },
+  rh: { min: 80, max: 98, step: 0.5, unit: "%", name: "Humidity" },
+  co2: { min: 600, max: 5000, step: 50, unit: "ppm", name: "CO₂ limit" },
+  light: { min: 0, max: 16, step: 1, unit: "h/day", name: "Blue light" },
+};
+
+const $ = (id) => document.getElementById(id);
+const s = { t: 19.8, rh: 91, co2: 760, sub: 19.5, mist: false, heater: false, fan: 25, purge: 0, light: false, tank: 0.95, burst: 0,
+            set: { phase: "fruiting", ...PHASES.fruiting } };
+let simMs = Date.now() - 24 * 3600e3, nextSample = simMs;
+const hist = [];
+const alerts = [];
+let unread = 0;
+
+function amps() { return 0.25 + (s.heater ? 4.17 : 0) + (s.mist ? 0.83 : 0) + (s.light ? 0.5 : 0) + s.fan / 100 * 0.15; }
+
+function step(dt) {
+  const d = new Date(simMs), hour = d.getHours() + d.getMinutes() / 60;
+  s.light = s.set.light > 0 && hour >= 7 && hour < 7 + s.set.light;
+  if (s.t < s.set.t - 0.5) s.heater = true; else if (s.t > s.set.t + 0.5) s.heater = false;
+  const tankOk = s.tank > 0.08;
+  if (s.burst > 0) { s.mist = tankOk; s.burst -= dt; }
+  else if (s.rh < s.set.rh - 2.5 && tankOk) s.mist = true;
+  else if (s.rh > s.set.rh + 2.5 || !tankOk) s.mist = false;
+  if (s.co2 > s.set.co2) s.purge = Math.max(s.purge, 120);
+  if (s.purge > 0) { s.fan = 100; s.purge -= dt; } else s.fan = 25;
+  s.t += (ROOM_C + (s.heater ? 4.5 : 0) + (s.light ? 0.4 : 0) - s.t) * dt / 900;
+  s.sub += (s.t - 0.3 - s.sub) * dt / 3600;
+  s.rh = Math.min(99.5, s.rh + ((s.mist ? 0.06 : 0) - (s.rh - 70) * (0.0006 + s.fan / 100 * 0.004)) * dt);
+  const co2Made = 0.6 * (1 + 0.3 * Math.sin(simMs / 3.6e6 / 6 * 2 * Math.PI));   // mycelium output drifts over ~6 h
+  s.co2 += (co2Made - (s.co2 - 420) * (s.fan / 100) * 0.005) * dt;
+  if (s.mist) s.tank = Math.max(0, s.tank - dt * 4e-6);
+  checkAlerts();
+  simMs += dt * 1000;
+  if (simMs >= nextSample) {
+    hist.push({ ts: simMs, t: s.t, rh: s.rh, co2: s.co2, sub: s.sub, a: amps(), phase: s.set.phase });
+    if (hist.length > 288) hist.shift();
+    nextSample += SAMPLE_S * 1000;
+  }
+}
+
+let tankState = "ok";
+function checkAlerts() {
+  const st = s.tank < 0.08 ? "empty" : s.tank < 0.15 ? "low" : "ok";
+  if (st !== tankState) {
+    if (st === "low") addAlert("warn", "Water tank getting low", "about a day of misting left");
+    if (st === "empty") addAlert("crit", "Water tank empty: mist locked out", "humidity will drop until you refill");
+    tankState = st;
+  }
+}
+function addAlert(level, text, detail) {
+  alerts.unshift({ level, text, detail, ts: simMs });
+  if (alerts.length > 40) alerts.pop();
+  if (level !== "info" && currentTab !== "alerts") unread++;
+}
+
+// ---------- formatting ----------
+const fmtTime = (ms) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const MEASURES = {
+  t: { name: "Air temperature", unit: "℃", dec: 1, band: () => [s.set.t - 0.5, s.set.t + 0.5] },
+  rh: { name: "Humidity", unit: "%", dec: 1, band: () => [s.set.rh - 2.5, s.set.rh + 2.5] },
+  co2: { name: "CO₂", unit: "ppm", dec: 0, band: () => [400, s.set.co2] },
+  sub: { name: "Substrate", unit: "℃", dec: 1, band: () => [s.set.t - 2, s.set.t + 1] },
+  board: { name: "Electronics temperature", unit: "℃", dec: 1, band: () => null },
+  a: { name: "Current (12 V)", unit: "A", dec: 2, band: () => null },
+};
+const bandFor = (key) => (mode === "real" ? null : MEASURES[key].band());   // the real chamber has no setpoints yet
+function status(key, v) {
+  const [lo, hi] = MEASURES[key].band();
+  const slack = key === "co2" ? 0.5 * (hi - lo) : key === "rh" ? 5 : 1.5;   // beyond the band + slack = act now
+  if (v < lo - slack || v > hi + slack) return ["crit", v > hi ? "▲" : "▼", v > hi ? "far too high" : "far too low"];
+  if (v < lo) return ["warn", "▼", "below target"];
+  if (v > hi) return ["warn", "▲", "above target"];
+  return ["good", "✓", "in range"];
+}
+function stHtml([cls, icon, text]) { return `<span class="st ${cls}"><i aria-hidden="true">${icon}</i>${text}</span>`; }
+
+// ---------- overview ----------
+function spark(key, n) { return sparkSvg(hist.slice(-n).map((p) => p[key]).concat([s[key]])); }
+function sparkSvg(pts) {
+  const lo = Math.min(...pts), hi = Math.max(...pts), span = hi - lo || 1;
+  const d = pts.map((v, i) => `${(i / (pts.length - 1) * 100).toFixed(1)},${(26 - (v - lo) / span * 22).toFixed(1)}`).join(" L");
+  return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><path d="M${d}" fill="none" stroke="var(--series)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+function renderOverview() {
+  const tile = (key) => {
+    const m = MEASURES[key], v = s[key], [lo, hi] = m.band();
+    const tgt = key === "co2" ? `limit ${hi} ppm` : `target ${lo.toFixed(m.dec)}–${hi.toFixed(m.dec)} ${m.unit}`;
+    return `<div class="tile"><div class="lbl">${m.name}</div><div class="val">${v.toFixed(m.dec)}<small>${m.unit}</small></div>
+      <div class="tgt">${tgt}</div>${stHtml(status(key, v))}${spark(key, 24)}</div>`;
+  };
+  const tankPct = Math.round(s.tank * 100);
+  const tankSt = s.tank < 0.08 ? ["crit", "!", "refill now"] : s.tank < 0.15 ? ["warn", "!", "getting low"] : ["good", "✓", "ok"];
+  $("tiles").innerHTML = tile("t") + tile("rh") + tile("co2") + tile("sub") +
+    `<div class="tile"><div class="lbl">Current (12 V)</div><div class="val">${amps().toFixed(1)}<small>A</small></div>
+      <div class="tgt">ACS712 · what is drawing</div>${stHtml(["good", "✓", s.heater ? "heater on, as told" : "matches outputs"])}${spark("a", 24)}</div>
+     <div class="tile"><div class="lbl">Water tank</div><div class="val">${tankPct}<small>%</small></div>
+      <div class="tgt">float switch + mist time</div>${stHtml(tankSt)}
+      ${tankPct < 15 ? '<button class="linkbtn" onclick="refill()" style="margin-top:6px">Refilled (demo)</button>' : ""}</div>`;
+  // on: true / false, or a text like "25 %" (shown as running)
+  const row = (name, on, meta) => `<div class="row"><div class="name">${name}<div class="meta">${meta}</div></div><span class="state ${on ? "on" : ""}">${on === true ? "ON" : on === false ? "OFF" : on}</span></div>`;
+  $("outputs").innerHTML =
+    row("Mist", s.mist, s.tank < 0.08 ? "locked: tank empty" : `keeps humidity ${MEASURES.rh.band().map((x) => x.toFixed(0)).join("–")} %`) +
+    row("Heater", s.heater, `keeps ${MEASURES.t.band().map((x) => x.toFixed(1)).join("–")} ℃`) +
+    row("Intake fan", `${s.fan} %`, s.fan === 100 ? "fresh-air purge" : "base flow, purges when CO₂ hits the limit") +
+    row("Blue light", s.light, s.set.light ? `07:00 + ${s.set.light} h` : "off in this phase");
+}
+s.a = 0;   // live current, refreshed in render() so the current tile's sparkline can read it like the others
+
+// ---------- graphs ----------
+let rangeH = 6;
+const tables = {};
+// Points of one value for the chosen range: simulated history + the live value, or the real rows that have it
+function seriesPts(key) {
+  if (mode === "real") {
+    const from = Date.now() - rangeH * 3600e3;
+    return realRows.filter((p) => p.ts >= from && Number.isFinite(p[key]));
+  }
+  return hist.slice(-rangeH * 12).concat([{ ts: simMs, [key]: key === "a" ? amps() : s[key] }]);
+}
+function chart(key) {
+  const m = MEASURES[key];
+  const pts = seriesPts(key);
+  if (pts.length < 2) return `<div class="chart"><div class="head"><span class="title">${m.name}</span></div><p class="note">Not enough data yet: a new value arrives every 5 minutes.</p></div>`;
+  const W = 360, H = 150, L = 38, R = 8, T = 10, B = 22;
+  const band = bandFor(key);
+  const { lo, hi } = domain(key, pts);
+  const t0 = pts[0].ts, t1 = pts[pts.length - 1].ts;
+  const x = (ts) => L + (ts - t0) / (t1 - t0 || 1) * (W - L - R);
+  const y = (v) => T + (hi - v) / (hi - lo) * (H - T - B);
+  const ticks = niceTicks(lo, hi), tickDec = ticks[1] - ticks[0] < 1 ? 1 : 0;
+  let g = ticks.map((v) => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/>
+    <text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="10.5" fill="var(--muted)">${v.toFixed(tickDec)}</text>`).join("");
+  for (let k = 0; k <= 3; k++) {
+    const ts = t0 + (t1 - t0) * k / 3;
+    g += `<text x="${x(ts)}" y="${H - 6}" text-anchor="${k === 0 ? "start" : k === 3 ? "end" : "middle"}" font-size="10.5" fill="var(--muted)">${fmtTime(ts)}</text>`;
+  }
+  if (band) g = `<rect x="${L}" width="${W - L - R}" y="${y(Math.min(band[1], hi))}" height="${Math.max(0, y(Math.max(band[0], lo)) - y(Math.min(band[1], hi)))}" fill="var(--band)"/>` + g;
+  // a gap of more than 15 min (logger off) breaks the line instead of drawing a straight bridge
+  const d = pts.map((p, i) => `${i && p.ts - pts[i - 1].ts <= 15 * 60e3 ? "L" : "M"}${x(p.ts).toFixed(1)},${y(p[key]).toFixed(1)}`).join("");
+  g += `<path d="${d}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += `<line class="xh" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/>
+        <circle class="dot" r="4.5" fill="var(--series)" stroke="var(--card)" stroke-width="2" visibility="hidden"/>
+        <rect class="hit" x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent"/>`;
+  const now = pts[pts.length - 1][key];
+  const rows = [];
+  for (let i = pts.length - 1; i >= 0 && rows.length < rangeH; i -= 12) rows.push(`<tr><td>${fmtTime(pts[i].ts)}</td><td>${pts[i][key].toFixed(m.dec)} ${m.unit}</td></tr>`);
+  return `<div class="chart" data-key="${key}">
+    <div class="head"><span class="title">${m.name}</span><span class="now">now ${now.toFixed(m.dec)} ${m.unit}</span></div>
+    ${band ? `<div class="note" style="margin:0 0 4px">shaded = ${key === "co2" ? "below the limit" : "target band"}</div>` : ""}
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${m.name}, last ${rangeH} hours, now ${now.toFixed(m.dec)} ${m.unit}">${g}</svg>
+    <div class="tip"></div>
+    <button class="linkbtn" data-table="${key}">${tables[key] ? "Hide table" : "Show as table"}</button>
+    ${tables[key] ? `<table><tr><th>Time</th><th>Value</th></tr>${rows.join("")}</table>` : ""}
+  </div>`;
+}
+function renderGraphs() {
+  const keys = mode === "real" ? ["t", "rh", "co2", "sub", "board", "a"].filter((k) => seriesPts(k).length >= 2) : ["t", "rh", "co2", "a"];
+  $("charts").innerHTML = keys.map(chart).join("") || `<p class="note">No measurements in the last ${rangeH} h. Is the logger running?</p>`;
+  document.querySelectorAll(".chart[data-key]").forEach(wireHover);
+}
+function wireHover(el) {
+  const key = el.dataset.key, svg = el.querySelector("svg"), tip = el.querySelector(".tip");
+  const xh = svg.querySelector(".xh"), dot = svg.querySelector(".dot");
+  const pts = seriesPts(key);
+  if (pts.length < 2) return;
+  const m = MEASURES[key];
+  const move = (e) => {
+    const r = svg.getBoundingClientRect(), vx = (e.clientX - r.left) / r.width * 360;
+    const t0 = pts[0].ts, t1 = pts[pts.length - 1].ts, W = 360, L = 38, R = 8;
+    const ts = t0 + (vx - L) / (W - L - R) * (t1 - t0);
+    let best = pts[0];
+    for (const p of pts) if (Math.abs(p.ts - ts) < Math.abs(best.ts - ts)) best = p;
+    const px = L + (best.ts - t0) / (t1 - t0) * (W - L - R);
+    const path = svg.querySelector("path"), pathY = yFor(svg, best, key);
+    xh.setAttribute("x1", px); xh.setAttribute("x2", px); xh.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", px); dot.setAttribute("cy", pathY); dot.setAttribute("visibility", "visible");
+    tip.style.display = "block";
+    tip.style.left = (12 + px / 360 * r.width) + "px";
+    tip.style.top = (svg.offsetTop + pathY / 150 * r.height - 8) + "px";
+    tip.textContent = `${fmtTime(best.ts)} · ${best[key].toFixed(m.dec)} ${m.unit}`;
+  };
+  const leave = () => { xh.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); tip.style.display = "none"; };
+  const hit = svg.querySelector(".hit");
+  hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move); hit.addEventListener("pointerleave", leave);
+}
+// The value range a chart shows: data and target band, at least MIN_SPAN wide so small wiggles don't look dramatic.
+const MIN_SPAN = { t: 3, rh: 12, co2: 600, sub: 3, board: 4, a: 6 };
+function domain(key, pts) {
+  const band = bandFor(key);
+  const vals = pts.map((q) => q[key]).concat(band || []);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (hi - lo < MIN_SPAN[key]) { const c = (hi + lo) / 2; lo = c - MIN_SPAN[key] / 2; hi = c + MIN_SPAN[key] / 2; }
+  const pad = (hi - lo) * 0.06;
+  return { lo: key === "a" ? lo - pad : Math.max(0, lo - pad), hi: hi + pad };   // only current can dip below zero (sensor noise)
+}
+function niceTicks(lo, hi) {
+  const raw = (hi - lo) / 3, mag = 10 ** Math.floor(Math.log10(raw)), f = raw / mag;
+  const step = (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * mag;
+  const out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+  return out;
+}
+// y of a history point inside a rendered chart: the same scale the chart used
+function yFor(svg, p, key) {
+  const { lo, hi } = domain(key, seriesPts(key));
+  return 10 + (hi - p[key]) / (hi - lo) * (150 - 10 - 22);
+}
+
+// ---------- control ----------
+const draft = {};
+function renderControl() {
+  document.querySelectorAll("#phaseSeg button").forEach((b) => b.classList.toggle("sel", b.dataset.p === (draft.phase || s.set.phase)));
+  $("sliders").innerHTML = Object.entries(LIMITS).map(([k, l]) => {
+    const v = draft[k] ?? s.set[k];
+    return `<div class="ctl"><div class="top"><b>${l.name}</b><span id="v-${k}">${v} ${l.unit}</span></div>
+      <input type="range" min="${l.min}" max="${l.max}" step="${l.step}" value="${v}" data-k="${k}" aria-label="${l.name}">
+      <div class="lim">allowed ${l.min}–${l.max} ${l.unit} · checked again on the ESP32</div></div>`;
+  }).join("");
+  $("send").disabled = Object.keys(draft).length === 0;
+}
+$("sliders").addEventListener("input", (e) => {
+  const k = e.target.dataset.k; if (!k) return;
+  draft[k] = Number(e.target.value);
+  $("v-" + k).textContent = `${draft[k]} ${LIMITS[k].unit}`;
+  $("send").disabled = false;
+});
+$("phaseSeg").addEventListener("click", (e) => {
+  const p = e.target.dataset.p; if (!p) return;
+  draft.phase = p; Object.assign(draft, PHASES[p]);
+  renderControl();
+});
+function sendCommand(label, apply) {
+  $("ack").textContent = "Sending…";
+  setTimeout(() => {   // demo: the "ESP32" answers after a short delay, like a real round trip
+    apply();
+    $("ack").textContent = `✓ Confirmed by the controller · ${fmtTime(simMs)}`;
+    addAlert("info", label, "sent from this phone");
+    render();
+  }, 700);
+}
+$("send").onclick = () => {
+  const d = { ...draft };
+  const parts = Object.entries(d).filter(([k]) => k !== "phase").map(([k, v]) => `${LIMITS[k].name} ${v} ${LIMITS[k].unit}`);
+  sendCommand(d.phase && d.phase !== s.set.phase ? `Phase → ${d.phase}` : `Setpoints: ${parts.join(", ")}`, () => {
+    Object.assign(s.set, d);
+    for (const k in draft) delete draft[k];
+  });
+  $("send").disabled = true;
+};
+$("mistBurst").onclick = () => sendCommand("Mist burst 10 s", () => { s.burst = 10; });
+$("purgeBtn").onclick = () => sendCommand("Fresh air 2 min", () => { s.purge = 120; });
+function refill() { s.tank = 1; addAlert("info", "Tank refilled", "mist unlocked"); render(); }
+
+// ---------- alerts ----------
+function renderAlerts() {
+  const icon = { crit: "✕", warn: "!", info: "●" };
+  $("alerts").innerHTML = alerts.length ? alerts.map((a) => `<div class="alert">${stHtml([a.level, icon[a.level], ""])}
+    <div class="txt">${a.text}<small>${fmtTime(a.ts)} · ${a.detail}</small></div></div>`).join("") : '<p class="note">No alerts.</p>';
+}
+
+// ---------- logbook ----------
+// Demo data: grow #3 runs now, #1 and #2 are example finished grows. Entries you add stay in this browser only.
+const DAY = 86400e3;
+const GROWS = [
+  { name: "Grow #3 · Oyster (Pleurotus ostreatus)", start: Date.now() - 14 * DAY, current: true, substrate: "5 kg pasteurised straw, 10 % spawn" },
+  { name: "Grow #2 · Oyster", start: Date.now() - 50 * DAY, end: Date.now() - 22 * DAY, yieldG: 1240, note: "example data" },
+  { name: "Grow #1 · Oyster", start: Date.now() - 90 * DAY, end: Date.now() - 63 * DAY, yieldG: 860, note: "example data" },
+];
+const LOG_KEY = "gc-demo-logbook";
+const growDay = (ts) => Math.floor((ts - GROWS[0].start) / DAY);
+const fmtDate = (ms) => new Date(ms).toLocaleDateString([], { day: "numeric", month: "short" });
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let entries = loadEntries(), kind = "note", photoData = null;
+
+function loadEntries() {
+  try { const saved = JSON.parse(localStorage.getItem(LOG_KEY)); if (Array.isArray(saved)) return saved; } catch {}
+  const g = GROWS[0].start;
+  return [
+    { ts: g + 3600e3, kind: "note", text: "Inoculated 5 kg pasteurised straw with 10 % grain spawn. Bag sealed, incubation started." },
+    { ts: g + 3 * DAY, kind: "problem", text: "Small green spot near the top hole (Trichoderma?). Watching it." },
+    { ts: g + 11 * DAY + 9 * 3600e3, kind: "note", text: "First pins on the left side of the block. Phase → fruiting." },
+  ];
+}
+function saveEntries() {
+  try { localStorage.setItem(LOG_KEY, JSON.stringify(entries)); return true; } catch { return false; }
+}
+function renderLogbook() {
+  const g = GROWS[0];
+  const harvested = entries.filter((e) => e.kind === "harvest").reduce((sum, e) => sum + (e.grams || 0), 0);
+  $("growCard").innerHTML = `<div class="gname">${g.name}</div>
+    <div class="gmeta">started ${fmtDate(g.start)} · day ${growDay(Date.now())} · ${s.set.phase}</div>
+    <div class="gmeta">${g.substrate}${harvested ? ` · harvested ${harvested} g` : ""}</div>`;
+  $("entries").innerHTML = [...entries].sort((a, b) => b.ts - a.ts).map((e) => `<div class="entry">
+      <div class="day">day<b>${growDay(e.ts)}</b>${fmtDate(e.ts)}</div>
+      <div class="body"><span class="tag ${e.kind}">${e.kind}</span>${e.grams ? ` · <b>${e.grams} g</b>` : ""}
+        <div>${esc(e.text)}</div>${e.photo ? `<img src="${e.photo}" alt="photo, day ${growDay(e.ts)}">` : ""}</div></div>`).join("")
+    || '<p class="note">No entries yet.</p>';
+  $("growList").innerHTML = GROWS.map((x) => `<div class="growrow"><div class="gr">${x.name}${x.current ? " · now" : ""}
+      <small>${fmtDate(x.start)} – ${x.end ? fmtDate(x.end) : "running"}${x.note ? " · " + x.note : ""}</small></div>
+      <span class="yield">${x.current ? (harvested ? harvested + " g" : "–") : x.yieldG + " g"}</span></div>`).join("");
+}
+function shrinkPhoto(file, maxPx) {   // phone photos are several MB: scale down before storing
+  return new Promise((ok, fail) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      ok(c.toDataURL("image/jpeg", 0.7));
+    };
+    img.onerror = fail;
+    img.src = URL.createObjectURL(file);
+  });
+}
+function resetForm() {
+  $("entryForm").hidden = true; $("entryText").value = ""; $("grams").value = ""; $("photoIn").value = "";
+  photoData = null; $("preview").style.display = "none";
+}
+$("newEntry").onclick = () => { $("entryForm").hidden = false; $("entryText").focus(); };
+$("cancelEntry").onclick = resetForm;
+$("kindSeg").addEventListener("click", (e) => {
+  const k = e.target.dataset.k; if (!k) return;
+  kind = k;
+  document.querySelectorAll("#kindSeg button").forEach((b) => b.classList.toggle("sel", b.dataset.k === k));
+  $("grams").hidden = k !== "harvest";
+  if (k === "photo") $("photoIn").click();
+});
+$("photoIn").addEventListener("change", async () => {
+  const file = $("photoIn").files[0]; if (!file) return;
+  photoData = await shrinkPhoto(file, 640);
+  $("preview").src = photoData; $("preview").style.display = "block";
+});
+$("saveEntry").onclick = () => {
+  const text = $("entryText").value.trim(), grams = Math.round(Number($("grams").value)) || 0;
+  if (!text && !photoData && !grams) return;
+  entries.push({ ts: Date.now(), kind: kind === "note" && photoData ? "photo" : kind, text, photo: photoData, grams: kind === "harvest" ? grams : undefined });
+  if (!saveEntries()) addAlert("info", "Entry kept until the app is closed", "this browser's demo storage is full");
+  resetForm(); renderLogbook();
+};
+
+// CSV export: the phone saves or shares the file (Excel, Numbers, Google Sheets)
+const pad2 = (n) => String(n).padStart(2, "0");
+const stamp = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+const csvCell = (v) => (/[",\n]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : v);
+function download(name, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+$("exportData").onclick = () => {
+  const rows = hist.map((p) => [stamp(p.ts), p.phase, p.t.toFixed(2), p.rh.toFixed(1), Math.round(p.co2), p.sub.toFixed(2), p.a.toFixed(2)].join(","));
+  download(`grow3_data_demo_${stamp(simMs).slice(0, 10)}.csv`, "time,phase,air_C,rh_pct,co2_ppm,substrate_C,current_A\n" + rows.join("\n") + "\n");
+};
+$("exportLog").onclick = () => {
+  const rows = [...entries].sort((a, b) => a.ts - b.ts)
+    .map((e) => [stamp(e.ts), growDay(e.ts), e.kind, e.grams || "", csvCell(e.text), e.photo ? "yes" : ""].join(","));
+  download(`grow3_logbook_${stamp(Date.now()).slice(0, 10)}.csv`, "time,day,kind,grams,text,photo\n" + rows.join("\n") + "\n");
+};
+
+// ---------- real data (Supabase) ----------
+// The publishable key is meant to be public: your data is protected by your login and the database's row-level security.
+const SUPABASE_URL = "https://xbxltjxnrmobpnqdnvsi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_jed9HwBP_-ygvn2rVrtA9A_nHWruEer";
+const STALE_MIN = 12;          // no new row for this long: the logger is probably off or offline
+const COLS = "ts,phase,air_c,rh_pct,co2_ppm,substrate_c,current_a";
+let mode = "demo", sb = null, user = null, realRows = [], lastFetch = 0, loadError = "";
+
+async function fetchReal() {
+  lastFetch = Date.now();
+  const since = new Date(Date.now() - 24 * 3600e3).toISOString();
+  const query = (cols) => sb.from("measurements").select(cols).gte("ts", since).order("ts").limit(2000);
+  let { data, error } = await query(COLS + ",board_c");
+  if (error && /board_c/.test(error.message)) ({ data, error } = await query(COLS));   // database update 002 not run yet
+  if (error) { loadError = "Can't load data"; console.warn(error); render(); return; }
+  loadError = "";
+  const n = (v) => (v === null || v === undefined ? NaN : Number(v));
+  realRows = data.map((r) => ({ ts: Date.parse(r.ts), phase: r.phase, t: n(r.air_c), rh: n(r.rh_pct), co2: n(r.co2_ppm),
+                                sub: n(r.substrate_c), board: n(r.board_c), a: n(r.current_a) }));
+  render();
+}
+
+function renderRealHeader() {
+  const last = realRows[realRows.length - 1], pill = $("pill");
+  if (!last) {
+    pill.className = "pill stale"; pill.textContent = loadError || "No data yet";
+    $("clock").textContent = "waiting for the logger"; $("phaseChip").textContent = "–";
+    return;
+  }
+  const stale = (Date.now() - last.ts) / 60000 > STALE_MIN;
+  pill.className = "pill " + (stale ? "stale" : "live");
+  pill.textContent = stale ? `No data since ${fmtTime(last.ts)}` : "Live · real data";
+  $("clock").textContent = `last row ${fmtTime(last.ts)} · a new one every 5 min`;
+  $("phaseChip").textContent = last.phase || "–";
+}
+
+function renderOverviewReal() {
+  const last = realRows[realRows.length - 1];
+  if (!last) {
+    $("tiles").innerHTML = `<p class="note">${loadError || "No measurements in the last 24 h. Is the logger running?"}</p>`;
+    $("outputs").innerHTML = "";
+    return;
+  }
+  const tile = (key, source) => {
+    const m = MEASURES[key], v = last[key], has = Number.isFinite(v);
+    const pts = realRows.slice(-24).map((p) => p[key]).filter(Number.isFinite);
+    return `<div class="tile"><div class="lbl">${m.name}</div>
+      <div class="val">${has ? v.toFixed(m.dec) : "–"}<small>${has ? m.unit : ""}</small></div>
+      <div class="tgt">${has ? source : "no sensor connected yet"}</div>${has && pts.length > 1 ? sparkSvg(pts) : ""}</div>`;
+  };
+  $("tiles").innerHTML = tile("t", "SHT31") + tile("rh", "SHT31") + tile("co2", "SCD41") + tile("sub", "DS18B20") +
+    tile("board", "DS3231 chip, at the electronics") + tile("a", "ACS712, 12 V side");
+  $("outputs").innerHTML = '<div class="row"><div class="name">No outputs yet<div class="meta">Mist, heater, fan and light appear here once the relays are wired and the controller runs.</div></div></div>';
+}
+
+function renderAcct() {
+  $("acct").innerHTML = mode === "real"
+    ? `<p class="note" style="margin-top:0">Signed in as ${esc(user?.email || "")}</p>
+       <div class="two" style="margin-top:0"><button class="btn ghost" data-act="demo">Show the demo</button><button class="btn ghost" data-act="logout">Log out</button></div>`
+    : `<p class="note" style="margin-top:0">Demo: simulated in your browser, 20× faster than real time.</p>
+       <button class="btn" data-act="real">See my real chamber</button>`;
+}
+$("acct").addEventListener("click", async (e) => {
+  const act = e.target.dataset.act; if (!act) return;
+  $("sheet").classList.remove("open");
+  if (act === "demo") enterDemo();
+  if (act === "logout") { await sb?.auth.signOut(); user = null; mode = "demo"; showLogin(); }
+  if (act === "real") {
+    const session = sb && (await sb.auth.getSession()).data.session;
+    session ? enterReal(session.user) : showLogin();
+  }
+});
+
+function showLogin(msg = "") { $("login").hidden = false; $("loginMsg").textContent = msg; }
+function enterReal(u) { user = u; mode = "real"; $("login").hidden = true; fetchReal(); render(); }
+function enterDemo() { mode = "demo"; $("login").hidden = true; render(); }
+async function startApp() {
+  if (!window.supabase) return showLogin("The login service didn't load. Check the internet connection, or try the demo.");
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const { data } = await sb.auth.getSession();   // stays logged in on this phone
+  data.session ? enterReal(data.session.user) : showLogin();
+}
+$("loginBtn").onclick = async () => {
+  if (!sb) return;
+  $("loginMsg").textContent = "Logging in…";
+  const { data, error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value });
+  if (error) { $("loginMsg").textContent = /invalid login/i.test(error.message) ? "Wrong email or password." : error.message; return; }
+  $("password").value = "";
+  enterReal(data.user);
+};
+$("password").addEventListener("keydown", (e) => { if (e.key === "Enter") $("loginBtn").click(); });
+$("demoBtn").onclick = enterDemo;
+$("exportGraphs").onclick = () => {
+  if (mode !== "real") return $("exportData").click();
+  const keys = ["t", "rh", "co2", "sub", "board", "a"];
+  const rows = realRows.map((p) => [stamp(p.ts), p.phase || "", ...keys.map((k) => (Number.isFinite(p[k]) ? p[k] : ""))].join(","));
+  download(`chamber_data_${stamp(Date.now()).slice(0, 10)}.csv`, "time,phase,air_C,rh_pct,co2_ppm,substrate_C,board_C,current_A\n" + rows.join("\n") + "\n");
+};
+
+// ---------- shell ----------
+let currentTab = "overview";
+function render() {
+  const real = mode === "real";
+  document.querySelectorAll(".demoOnly").forEach((e) => (e.hidden = real));
+  document.querySelectorAll(".realOnly").forEach((e) => (e.hidden = !real));
+  if (real) renderRealHeader();
+  else {
+    s.a = amps();
+    $("pill").className = "pill"; $("pill").textContent = "Demo · simulated";
+    $("clock").textContent = `demo clock ${fmtTime(simMs)} · ×${SPEED}`;
+    $("phaseChip").textContent = s.set.phase === "fruiting" ? "Fruiting" : "Incubation";
+  }
+  const b = $("badge"); b.hidden = real || unread === 0; b.textContent = unread;
+  if (currentTab === "overview") real ? renderOverviewReal() : renderOverview();
+  if (currentTab === "graphs" && !document.querySelector(".chart:hover")) renderGraphs();
+  if (currentTab === "alerts" && !real) renderAlerts();
+}
+$("nav").addEventListener("click", (e) => {
+  const btn = e.target.closest("button"); if (!btn) return;
+  currentTab = btn.dataset.tab;
+  document.querySelectorAll("#nav button").forEach((x) => x.classList.toggle("sel", x === btn));
+  document.querySelectorAll("main section").forEach((sec) => (sec.hidden = sec.id !== "tab-" + currentTab));
+  if (currentTab === "alerts") unread = 0;
+  if (currentTab === "control") renderControl();
+  if (currentTab === "logbook") renderLogbook();   // not every second: photos would flicker
+  render();
+});
+$("range").addEventListener("click", (e) => {
+  const h = Number(e.target.dataset.h); if (!h) return;
+  rangeH = h;
+  document.querySelectorAll("#range button").forEach((x) => x.classList.toggle("sel", Number(x.dataset.h) === h));
+  renderGraphs();
+});
+$("charts").addEventListener("click", (e) => {
+  const k = e.target.dataset.table; if (!k) return;
+  tables[k] = !tables[k]; renderGraphs();
+});
+$("gear").onclick = () => { renderAcct(); $("sheet").classList.add("open"); };
+$("closeSheet").onclick = () => $("sheet").classList.remove("open");
+$("themeSeg").addEventListener("click", (e) => {
+  const t = e.target.dataset.t; if (t === undefined) return;
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  document.querySelectorAll("#themeSeg button").forEach((x) => x.classList.toggle("sel", x.dataset.t === t));
+});
+document.querySelector('#themeSeg button[data-t=""]').classList.add("sel");
+
+// 24 h of history before the demo starts, then live at SPEED× real time
+while (simMs < Date.now()) step(10);
+alerts.length = 0; unread = 0;
+addAlert("info", "Phase → fruiting", "sent from this phone");
+alerts[0].ts = Date.now() - 20 * 3600e3;
+addAlert("warn", "Humidity below 85 % for 12 min", "a mist cycle was skipped while the tank was refilled");
+alerts[0].ts = Date.now() - 6 * 3600e3;
+unread = 1;
+// #demo or #tab=… (screenshots, deep links) go straight to the demo; otherwise log in or reuse the saved session
+if (/demo|tab=/.test(location.hash)) enterDemo(); else startApp();
+const startTab = (location.hash.match(/tab=(\w+)/) || [])[1];   // e.g. index.html#tab=graphs
+if (startTab) document.querySelector(`#nav button[data-tab="${startTab}"]`)?.click();
+setInterval(() => {
+  if (mode === "demo") for (let i = 0; i < SPEED; i++) step(1);
+  else if (sb && Date.now() - lastFetch > 60000) fetchReal();   // a new row arrives every 5 min
+  render();
+}, 1000);
+</script>
+</body>
+</html>
